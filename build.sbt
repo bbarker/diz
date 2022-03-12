@@ -23,5 +23,8 @@ val root = project
     name := "diz",
     description := "diz - a discord bot in Scala 3 and ZIO, using discord4j",
     scalaVersion := Version.scala,
-    libraryDependencies ++= (Dep.commonDeps ++ Seq(Dep.discord4j))
+    libraryDependencies ++= (Dep.commonDeps ++ Seq(
+      Dep.discord4j,
+      Dep.immutables
+    ))
   )

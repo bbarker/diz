@@ -36,3 +36,6 @@ classes/
 .bloop
 .metals
 project/project
+
+# Credentials
+*_creds.sh

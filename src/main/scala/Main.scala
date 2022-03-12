@@ -1,28 +1,54 @@
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.event.domain.lifecycle.ReadyEvent;
+// import discord4j.core.object.entity.User;
 
 import zio.*
 import zio.Console.*
+import discord4j.core.DiscordClient
+import discord4j.core.event.domain.message.MessageCreateEvent
 
-
-val discordTokenVar = "DISCORD_TOKEN"
-
+object EnvVars:
+  val discordToken = "DISCORD_TOKEN"
 
 object Diz extends zio.App:
   def run(args: List[String]) =
     println("starting myAppLogic")
-    myAppLogic.exitCode
+    mainLogic
+      .catchAll(err => putStrLn(s"Error: $err"))
+      .catchAllDefect(err => putStrLn(s"Deffect: $err"))
+      .exitCode
 
-  val myAppLogic =
+  val mainLogic =
     for {
       _ <- putStrLn("starting myAppLogic 2")
-      // discordToken <- ZIO.fromOption(sys.env.get(discordTokenVar))
+      discordToken <- ZIO
+        .fromOption(sys.env.get(EnvVars.discordToken))
+        .mapError(err =>
+          new RuntimeException(s"${EnvVars.discordToken} not set")
+        )
+      client <- UIO(DiscordClientBuilder.create(discordToken).build())
+      gateway <- ZIO.effect(client.login.block())
 
-      _    <- putStrLn("Hello! What is your name?")
-      name <- getStrLn
-      _    <- putStrLn(s"Hello, ${name}, welcome to ZIO!")
+      _ <- pingPong(gateway)
+      _ <- ZIO.effect(gateway.onDisconnect().block())
+
     } yield ()
+
+  def pingPong(gateway: GatewayDiscordClient): Task[Unit] = ZIO.effect(
+    gateway
+      .getEventDispatcher()
+      .on(classOf[MessageCreateEvent])
+      .map(_.getMessage)
+      .filter(message =>
+        message.getAuthor().map(user => !user.isBot()).orElse(false)
+      )
+      .filter(message => message.getContent().equalsIgnoreCase("!ping"))
+      .flatMap(_.getChannel)
+      .flatMap(channel => channel.createMessage("Pong!"))
+      .subscribe()
+  )
 
   /*
 
@@ -44,4 +70,4 @@ object Diz extends zio.App:
     gateway.onDisconnect().block();
   }
 }
-*/
+   */
