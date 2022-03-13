@@ -35,7 +35,7 @@ object Diz extends zio.App:
       gateway <- ZIO.effect(client.login.block())
       userMessages = getUserMessages(gateway)
 
-      _ <- randomlySayQuote(userMessages, maxQuoteRoll = 8)
+      _ <- randomlySayQuote(userMessages, maxQuoteRoll = 25)
       _ <- pingPong(userMessages)
       _ <- ZIO.effect(gateway.onDisconnect().block())
 
