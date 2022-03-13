@@ -35,6 +35,7 @@ classes/
 .vscode
 .bloop
 .metals
+project/metals.sbt
 project/project
 
 # Credentials

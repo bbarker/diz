@@ -1,7 +1,11 @@
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.{DiscordClient, DiscordClientBuilder, GatewayDiscordClient}
+import discord4j.core.{
+  DiscordClient,
+  DiscordClientBuilder,
+  GatewayDiscordClient
+}
 import zio.Console.*
 import zio.*
 
