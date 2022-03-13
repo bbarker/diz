@@ -26,5 +26,6 @@ val root = project
     libraryDependencies ++= (Dep.commonDeps ++ Seq(
       Dep.discord4j,
       Dep.immutables
-    ))
+    )),
+    libraryDependencies ++= Dep.testDeps.map(dep => dep % Test)
   )

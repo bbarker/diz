@@ -11,10 +11,16 @@ object DizQuotes:
   val quotePattern: Regex = "\"''(.*)''\"".r
 
   val layer: ULayer[DizQuotes] = ZLayer.fromEffect(for {
-    _ <- UIO(()) // TODO: read from resources
-    lines = "???".split("\n")
-    quotes = lines.flatMap(line =>
-      quotePattern.findAllMatchIn(line).map(_.group(1)).toArray
-    )
+    quoteFile <- ZIO
+      .effect(
+        scala.io.Source.fromResource("data/dizquotes.txt")(scala.io.Codec.UTF8)
+      )
+      .orDie
+    lines <- UIO(quoteFile.getLines.toArray)
+    quotes = lines
+      .flatMap(line =>
+        quotePattern.findAllMatchIn(line).map(_.group(1)).toArray
+      )
+      .map(_.strip)
 
   } yield DizQuotes(quotes))
