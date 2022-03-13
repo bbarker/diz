@@ -34,5 +34,8 @@ object QuotesSpec extends DefaultRunnableSpec:
         && assert(testQuotes.findBestQuote(""))(
           equalTo(None)
         )
+        && assert(testQuotes.findBestQuote(""))(
+          equalTo(Some("foo"))
+        )
       }
     )
