@@ -10,6 +10,10 @@ trait Quotes:
 
   def quotes: Array[String]
 
+  def sayQuote(quote: Option[String]): Option[String] = name match
+    case Some(nm) => quote.map(qt => s"$nm says \"$qt\"")
+    case None     => quote
+
   def quoteOverlap(message: String)(quote: String): Int =
     val regex = new Regex("""(?i)\b(?:[a-z]{2,})\b""")
     val wordsInMessage = regex.findAllIn(message).toSet
