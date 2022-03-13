@@ -64,7 +64,7 @@ object Diz extends zio.App:
           val roll = Runtime.default
             .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
           roll match
-            case Success(maxQuoteRoll) =>
+            case r if r == Success(maxQuoteRoll) =>
               val bestQuote =
                 quotes.sayQuote(quotes.findBestQuote(message.getContent()))
               bestQuote match
