@@ -19,9 +19,11 @@ trait Quotes:
   def findBestQuote(message: String): Option[String] =
     val quoteOverlaps = quotes.map(quoteOverlap(message))
     val maxOverlap = quoteOverlaps.max
-    val bestQuotes =
-      quoteOverlaps.zip(quotes).filter(_._1 == maxOverlap).map(_._2)
-    bestQuotes.headOption
+    if (maxOverlap > 0) then
+      val bestQuotes =
+        quoteOverlaps.zip(quotes).filter(_._1 == maxOverlap).map(_._2)
+      bestQuotes.headOption
+    else None
 
 object Quotes:
   def apply(quotes: List[Quotes]): Quotes = new Quotes {

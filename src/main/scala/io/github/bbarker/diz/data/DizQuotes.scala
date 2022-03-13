@@ -21,6 +21,6 @@ object DizQuotes:
       .flatMap(line =>
         quotePattern.findAllMatchIn(line).map(_.group(1)).toArray
       )
-      .map(_.strip)
+      .map(_.trim)
 
   } yield DizQuotes(quotes))
