@@ -10,9 +10,14 @@ object Dep {
   val zioPrelude = "dev.zio" %% "zio-prelude" % "1.0.0-RC10"
   val zioTest = "dev.zio" %% "zio-test" % Version.zio
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % Version.zio
+  val zioInteropReactiveStreams =
+    "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0-RC3"
 //val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
 
   val discord4j = "com.discord4j" % "discord4j-core" % "3.2.2"
+  val reactiveStreams = "org.reactivestreams" % "reactive-streams" % "1.0.3"
+  val reactiveStreamsExamples =
+    "org.reactivestreams" % "reactive-streams-examples" % "1.0.3"
 
   // For some reason this isn't picked up by the dependency resolver
   // https://stackoverflow.com/questions/69166256/bad-symbolic-reference-with-discord4j

@@ -25,7 +25,10 @@ val root = project
     scalaVersion := Version.scala,
     libraryDependencies ++= (Dep.commonDeps ++ Seq(
       Dep.discord4j,
-      Dep.immutables
+      Dep.immutables,
+      Dep.reactiveStreams,
+      Dep.reactiveStreamsExamples,
+      Dep.zioInteropReactiveStreams
     )),
     libraryDependencies ++= Dep.testDeps.map(dep => dep % Test)
   )

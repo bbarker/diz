@@ -8,10 +8,14 @@ import discord4j.core.{
   GatewayDiscordClient
 }
 import io.github.bbarker.diz.data.*
+// import org.reactivestreams.example.unicast.*
 import reactor.core.publisher.{Flux, Mono}
+
 import zio.Console.*
 import zio.Exit.Success
 import zio.*
+import zio.interop.reactivestreams.*
+import zio.stream.*
 
 object EnvVars:
   val discordToken = "DISCORD_TOKEN"
@@ -85,3 +89,16 @@ object Diz extends zio.App:
     .filter(message =>
       message.getAuthor().map(user => !user.isBot()).orElse(false)
     )
+
+  def getUserMessagesZio(
+      gateway: GatewayDiscordClient
+  ): Stream[Throwable, Message] =
+    publisherToStream(
+      gateway
+        .getEventDispatcher()
+        .on(classOf[MessageCreateEvent])
+    ).toStream(16)
+      .map(_.getMessage)
+      .filter(message =>
+        message.getAuthor().map(user => !user.isBot()).orElse(false)
+      )
