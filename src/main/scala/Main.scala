@@ -8,9 +8,8 @@ import discord4j.core.{
   GatewayDiscordClient
 }
 import io.github.bbarker.diz.data.*
-// import org.reactivestreams.example.unicast.*
+import org.reactivestreams.Publisher
 import reactor.core.publisher.{Flux, Mono}
-
 import zio.Console.*
 import zio.Exit.Success
 import zio.*
@@ -39,65 +38,52 @@ object Diz extends zio.App:
       gateway <- ZIO.effect(client.login.block())
       userMessages = getUserMessages(gateway)
 
-      _ <- randomlySayQuote(userMessages, maxQuoteRoll = 25)
-      _ <- pingPong(userMessages)
+      _ <- randomlySayQuote(userMessages, maxQuoteRoll = 25).runDrain
+      _ <- pingPong(userMessages).runDrain
       _ <- ZIO.effect(gateway.onDisconnect().block())
 
     } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
 
-  def pingPong(userMessages: Flux[Message]): Task[Unit] = ZIO.effect(
+  def pingPong(
+      userMessages: Stream[Throwable, Message]
+  ): Stream[Throwable, Message] =
     userMessages
       .filter(message => message.getContent().equalsIgnoreCase("!ping"))
-      .flatMap(_.getChannel)
-      .flatMap(channel => channel.createMessage("Pong!"))
-      .subscribe()
-  )
+      .flatMap(_.getChannel.toStream())
+      .flatMap(channel => channel.createMessage("Pong!").toStream())
 
   /** Will only say a quote when the the max quote roll is rolled
     */
   def randomlySayQuote(
-      userMessages: Flux[Message],
+      userMessages: Stream[Throwable, Message],
       maxQuoteRoll: Int
-  ): ZIO[Quotes & Random & Console, Throwable, Unit] = for {
+  ): ZStream[Quotes & Random & Console, Throwable, Unit] = for {
     // TODO: need to integrate Flux and ZIO, see #1
     // roll <- Random.nextIntBetween(1, maxQuoteRoll + 1)
-    quotes <- ZIO.service[Quotes]
-    _ <- ZIO.effect(
-      userMessages
-        .flatMap(message => {
-          val roll = Runtime.default
-            .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
-          roll match
-            case r if r == Success(maxQuoteRoll) =>
-              val bestQuote =
-                quotes.sayQuote(quotes.findBestQuote(message.getContent()))
-              bestQuote match
-                case Some(quote) =>
-                  message.getChannel.flatMap(_.createMessage(quote))
-                case None => Mono.empty
-            case _ => Mono.empty
-        })
-        .subscribe()
-    )
-
+    quotes <- ZStream.service[Quotes]
+    _ <- userMessages
+      .flatMap(message => {
+        val roll = Runtime.default
+          .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
+        roll match
+          case r if r == Success(maxQuoteRoll) =>
+            val bestQuote =
+              quotes.sayQuote(quotes.findBestQuote(message.getContent()))
+            bestQuote match
+              case Some(quote) =>
+                message.getChannel.flatMap(_.createMessage(quote)).toStream()
+              case None => ZStream.empty
+          case _ => ZStream.empty
+      })
   } yield ()
 
-  def getUserMessages(gateway: GatewayDiscordClient): Flux[Message] = gateway
-    .getEventDispatcher()
-    .on(classOf[MessageCreateEvent])
-    .map(_.getMessage)
-    .filter(message =>
-      message.getAuthor().map(user => !user.isBot()).orElse(false)
-    )
-
-  def getUserMessagesZio(
+  def getUserMessages(
       gateway: GatewayDiscordClient
   ): Stream[Throwable, Message] =
-    publisherToStream(
-      gateway
-        .getEventDispatcher()
-        .on(classOf[MessageCreateEvent])
-    ).toStream(16)
+    (gateway
+      .getEventDispatcher()
+      .on(classOf[MessageCreateEvent]): Publisher[MessageCreateEvent])
+      .toStream()
       .map(_.getMessage)
       .filter(message =>
         message.getAuthor().map(user => !user.isBot()).orElse(false)
