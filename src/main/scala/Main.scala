@@ -38,8 +38,11 @@ object Diz extends zio.App:
       gateway <- ZIO.effect(client.login.block())
       userMessages = getUserMessages(gateway)
 
+      _ <- pingPong(
+        userMessages
+      ).runDrain // FIXME: test to see if putting this here first works, which is the case
+      // FIXME: need to multicast
       _ <- randomlySayQuote(userMessages, maxQuoteRoll = 25).runDrain
-      _ <- pingPong(userMessages).runDrain
       _ <- ZIO.effect(gateway.onDisconnect().block())
 
     } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
