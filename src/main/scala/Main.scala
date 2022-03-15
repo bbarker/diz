@@ -57,7 +57,6 @@ object Diz extends zio.App:
       userMessage: Message
   ): Stream[Throwable, Message] = userMessage match
     case msg if msg.getContent.equalsIgnoreCase("!ping") =>
-      println(s"DEBUG: pingPong: userMessage is ${userMessage.getContent}")
       userMessage.getChannel
         .toStream()
         .flatMap(channel => channel.createMessage("Pong!").toStream())
@@ -72,13 +71,9 @@ object Diz extends zio.App:
     // TODO: need to integrate Flux and ZIO, see #1
     // roll <- Random.nextIntBetween(1, maxQuoteRoll + 1)
     quotes <- ZStream.service[Quotes]
-    _ <- ZStream.fromEffect(
-      ZIO.debug(s"randomlySayQuote: userMessage is ${userMessage.getContent}")
-    )
-    roll = Runtime.default
-      .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
+    roll <- ZStream.fromEffect(Random.nextIntBetween(1, maxQuoteRoll + 1))
     _ <- roll match
-      case r if r == Success(maxQuoteRoll) =>
+      case r if r == maxQuoteRoll =>
         val bestQuote =
           quotes.sayQuote(quotes.findBestQuote(userMessage.getContent()))
         bestQuote match
