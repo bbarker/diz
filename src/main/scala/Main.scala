@@ -37,47 +37,55 @@ object Diz extends zio.App:
       client <- UIO(DiscordClientBuilder.create(discordToken).build())
       gateway <- ZIO.effect(client.login.block())
       userMessages = getUserMessages(gateway)
+      _ <- mainUserMessageStream(userMessages).runDrain
 
-      _ <- pingPong(
-        userMessages
-      ).runDrain // FIXME: test to see if putting this here first works, which is the case
-      // FIXME: need to multicast
-      _ <- randomlySayQuote(userMessages, maxQuoteRoll = 25).runDrain
       _ <- ZIO.effect(gateway.onDisconnect().block())
 
     } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
 
-  def pingPong(
+  def mainUserMessageStream(
       userMessages: Stream[Throwable, Message]
-  ): Stream[Throwable, Message] =
-    userMessages
-      .filter(message => message.getContent().equalsIgnoreCase("!ping"))
-      .flatMap(_.getChannel.toStream())
-      .flatMap(channel => channel.createMessage("Pong!").toStream())
+  ): ZStream[Quotes & Random, Throwable, Unit] = userMessages.flatMap(msg =>
+    ZStream.mergeAllUnbounded()(
+      randomlySayQuote(msg, maxQuoteRoll = 25),
+      pingPong(msg).map(_ => ())
+      // Keep pingPong last to make sure streams are being evaluated correctly
+    )
+  )
+
+  def pingPong(
+      userMessage: Message
+  ): Stream[Throwable, Message] = userMessage match
+    case msg if msg.getContent.equalsIgnoreCase("!ping") =>
+      println(s"DEBUG: pingPong: userMessage is ${userMessage.getContent}")
+      userMessage.getChannel
+        .toStream()
+        .flatMap(channel => channel.createMessage("Pong!").toStream())
+    case _ => ZStream.empty
 
   /** Will only say a quote when the the max quote roll is rolled
     */
   def randomlySayQuote(
-      userMessages: Stream[Throwable, Message],
+      userMessage: Message,
       maxQuoteRoll: Int
-  ): ZStream[Quotes & Random & Console, Throwable, Unit] = for {
+  ): ZStream[Quotes & Random, Throwable, Unit] = for {
     // TODO: need to integrate Flux and ZIO, see #1
     // roll <- Random.nextIntBetween(1, maxQuoteRoll + 1)
     quotes <- ZStream.service[Quotes]
-    _ <- userMessages
-      .flatMap(message => {
-        val roll = Runtime.default
-          .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
-        roll match
-          case r if r == Success(maxQuoteRoll) =>
-            val bestQuote =
-              quotes.sayQuote(quotes.findBestQuote(message.getContent()))
-            bestQuote match
-              case Some(quote) =>
-                message.getChannel.flatMap(_.createMessage(quote)).toStream()
-              case None => ZStream.empty
-          case _ => ZStream.empty
-      })
+    _ <- ZStream.fromEffect(
+      ZIO.debug(s"randomlySayQuote: userMessage is ${userMessage.getContent}")
+    )
+    roll = Runtime.default
+      .unsafeRunSync(Random.nextIntBetween(1, maxQuoteRoll + 1))
+    _ <- roll match
+      case r if r == Success(maxQuoteRoll) =>
+        val bestQuote =
+          quotes.sayQuote(quotes.findBestQuote(userMessage.getContent()))
+        bestQuote match
+          case Some(quote) =>
+            userMessage.getChannel.flatMap(_.createMessage(quote)).toStream()
+          case None => ZStream.empty
+      case _ => ZStream.empty
   } yield ()
 
   def getUserMessages(
