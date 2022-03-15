@@ -1,3 +1,5 @@
+import java.io.IOException
+
 import discord4j.common.close.CloseException
 import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
@@ -23,13 +25,18 @@ object EnvVars:
 object Diz extends zio.App:
   def run(args: List[String]) =
     mainLogic
-      .retryWhile {
-        case _: CloseException => true
-        case _                 => false
+      .retryWhileM {
+        case ex: CloseException => warnError(ex) *> UIO(true)
+        case _                  => UIO(false)
       }
       .catchAll(err => putStrLn(s"Error: $err"))
       .catchAllDefect(err => putStrLn(s"Defect: $err"))
       .exitCode
+
+  def warnError(err: => Any)(implicit
+      trace: ZTraceElement
+  ): URIO[Console, Unit] =
+    putStrLn(s"Restarting due to Error: $err").orDie
 
   val mainLogic: ZIO[Console, Throwable, Unit] =
     (for {
