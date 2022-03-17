@@ -50,22 +50,41 @@ object Diz extends zio.App:
         )
       client <- UIO(DiscordClientBuilder.create(discordToken).build())
       gateway <- ZIO.effect(client.login.block())
-      userMessages = getUserMessages(gateway)
-      _ <- mainUserMessageStream(userMessages).runDrain
-
+      _ <- mainStream(gateway).runDrain
       _ <- ZIO.effect(gateway.onDisconnect().block())
 
     } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
 
-  def mainUserMessageStream(
-      userMessages: Stream[Throwable, Message]
-  ): ZStream[Quotes & Random, Throwable, Unit] = userMessages.flatMap(msg =>
-    ZStream.mergeAllUnbounded()(
-      randomlySayQuote(msg, maxQuoteRoll = 25),
-      pingPong(msg).map(_ => ())
-      // Keep pingPong last to make sure streams are being evaluated correctly
+  def mainStream(
+      gateway: GatewayDiscordClient
+  ): ZStream[Quotes & Random, Throwable, Unit] = for {
+    userMessage <- getUserMessages(gateway)
+    botMessage <- getBotMessages(gateway)
+    _ <- ZStream.mergeAllUnbounded()(
+      mainUserMessageStream(userMessage),
+      mainBotMessageStream(botMessage)
     )
-  )
+  } yield ()
+
+  def mainUserMessageStream(
+      userMessage: Message
+  ): ZStream[Quotes & Random, Throwable, Unit] =
+    UStream(userMessage).flatMap(msg =>
+      ZStream.mergeAllUnbounded()(
+        randomlySayQuote(msg, maxQuoteRoll = 25),
+        pingPong(msg).map(_ => ())
+        // Keep pingPong last to make sure streams are being evaluated correctly
+      )
+    )
+
+  def mainBotMessageStream(
+      botMessage: Message
+  ): ZStream[Quotes & Random, Throwable, Unit] =
+    UStream(botMessage).flatMap(msg =>
+      ZStream.mergeAllUnbounded()(
+        snarkOnRoll(msg)
+      )
+    )
 
   def pingPong(
       userMessage: Message
@@ -97,6 +116,14 @@ object Diz extends zio.App:
       case _ => ZStream.empty
   } yield ()
 
+  def snarkOnRoll(userMessage: Message): ZStream[Random, Throwable, Unit] =
+    for {
+      _ <- ZStream.fromEffect(ZIO.debug(userMessage))
+      _ <- ZStream.fromEffect(
+        ZIO.debug(s"above userMessage content: ${userMessage.getContent}")
+      )
+    } yield ()
+
   def getUserMessages(
       gateway: GatewayDiscordClient
   ): Stream[Throwable, Message] =
@@ -107,4 +134,16 @@ object Diz extends zio.App:
       .map(_.getMessage)
       .filter(message =>
         message.getAuthor().map(user => !user.isBot()).orElse(false)
+      )
+
+  def getBotMessages(
+      gateway: GatewayDiscordClient
+  ): Stream[Throwable, Message] =
+    (gateway
+      .getEventDispatcher()
+      .on(classOf[MessageCreateEvent]): Publisher[MessageCreateEvent])
+      .toStream()
+      .map(_.getMessage)
+      .filter(message =>
+        message.getAuthor().map(user => user.isBot()).orElse(false)
       )
