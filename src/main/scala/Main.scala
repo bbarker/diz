@@ -10,6 +10,7 @@ import discord4j.core.{
   DiscordClientBuilder,
   GatewayDiscordClient
 }
+import discord4j.rest.http.client.ClientException
 import io.github.bbarker.diz.data.*
 import org.reactivestreams.Publisher
 import reactor.core.publisher.{Flux, Mono}
@@ -26,8 +27,9 @@ object Diz extends zio.App:
   def run(args: List[String]) =
     mainLogic
       .retryWhileM {
-        case ex: CloseException => warnError(ex) *> UIO(true)
-        case _                  => UIO(false)
+        case ex: ClientException => warnError(ex) *> UIO(true)
+        case ex: CloseException  => warnError(ex) *> UIO(true)
+        case _                   => UIO(false)
       }
       .catchAll(err => putStrLn(s"Error: $err"))
       .catchAllDefect(err => putStrLn(s"Defect: $err"))
