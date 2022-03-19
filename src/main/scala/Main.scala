@@ -2,7 +2,7 @@ import java.io.IOException
 import scala.jdk.OptionConverters.*
 
 import discord4j.common.close.CloseException
-import discord4j.core.`object`.entity.{Message, User}
+import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -12,7 +12,10 @@ import discord4j.core.{
   GatewayDiscordClient
 }
 import discord4j.rest.http.client.ClientException
+import io.github.bbarker.diz.Types.*
 import io.github.bbarker.diz.data.*
+import io.github.bbarker.diz.rpgs.RollReaction.snarkOnRoll
+import io.github.bbarker.diz.users.Bots
 import org.reactivestreams.Publisher
 import reactor.core.publisher.{Flux, Mono}
 import zio.Console.*
@@ -25,8 +28,6 @@ object EnvVars:
   val discordToken = "DISCORD_TOKEN"
 
 object Diz extends zio.App:
-
-  type Tag = String
 
   def run(args: List[String]) =
     mainLogic
@@ -118,19 +119,6 @@ object Diz extends zio.App:
       case _ => ZStream.empty
   } yield ()
 
-  /*   Need to be aple to parse messages like this:
-   *
-   *     **Result**: 2d20 (17, 6) + 1d4 (2) + 2d6 (5, 2) + 3 + 1
-   *     **Total**: 36
-   */
-  def snarkOnRoll(userMessage: Message): ZStream[Random, Throwable, Unit] =
-    for {
-      _ <- ZStream.fromEffect(ZIO.debug(userMessage))
-      _ <- ZStream.fromEffect(
-        ZIO.debug(s"above userMessage content: ${userMessage.getContent}")
-      )
-    } yield ()
-
   def getUserMessages(
       gateway: GatewayDiscordClient
   ): Stream[Throwable, Message] =
@@ -155,7 +143,7 @@ object Diz extends zio.App:
         message.getAuthor().map(user => user.isBot()).orElse(false)
       )
 
-  def onUserMessage[R, E, A](triggerUsers: Set[Tag])(
+  def onUserMessage[R, E, A](triggerUsers: Set[DiscordTag])(
       stream: => ZStream[R, E, A]
   )(
       msg: Message
@@ -165,7 +153,3 @@ object Diz extends zio.App:
         triggerUsers.contains(author.getTag)
       )
     )(stream)
-
-  object Bots {
-    val avrae: Tag = "Avrae#6944"
-  }
