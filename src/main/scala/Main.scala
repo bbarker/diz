@@ -1,7 +1,8 @@
 import java.io.IOException
+import scala.jdk.OptionConverters.*
 
 import discord4j.common.close.CloseException
-import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.{Message, User}
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -24,6 +25,9 @@ object EnvVars:
   val discordToken = "DISCORD_TOKEN"
 
 object Diz extends zio.App:
+
+  type Tag = String
+
   def run(args: List[String]) =
     mainLogic
       .retryWhileM {
@@ -82,7 +86,7 @@ object Diz extends zio.App:
   ): ZStream[Quotes & Random, Throwable, Unit] =
     UStream(botMessage).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
-        snarkOnRoll(msg)
+        onUserMessage(Set(Bots.avrae))(snarkOnRoll(msg))(msg)
       )
     )
 
@@ -101,8 +105,6 @@ object Diz extends zio.App:
       userMessage: Message,
       maxQuoteRoll: Int
   ): ZStream[Quotes & Random, Throwable, Unit] = for {
-    // TODO: need to integrate Flux and ZIO, see #1
-    // roll <- Random.nextIntBetween(1, maxQuoteRoll + 1)
     quotes <- ZStream.service[Quotes]
     roll <- ZStream.fromEffect(Random.nextIntBetween(1, maxQuoteRoll + 1))
     _ <- roll match
@@ -116,6 +118,11 @@ object Diz extends zio.App:
       case _ => ZStream.empty
   } yield ()
 
+  /*   Need to be aple to parse messages like this:
+   *
+   *     **Result**: 2d20 (17, 6) + 1d4 (2) + 2d6 (5, 2) + 3 + 1
+   *     **Total**: 36
+   */
   def snarkOnRoll(userMessage: Message): ZStream[Random, Throwable, Unit] =
     for {
       _ <- ZStream.fromEffect(ZIO.debug(userMessage))
@@ -147,3 +154,18 @@ object Diz extends zio.App:
       .filter(message =>
         message.getAuthor().map(user => user.isBot()).orElse(false)
       )
+
+  def onUserMessage[R, E, A](triggerUsers: Set[Tag])(
+      stream: => ZStream[R, E, A]
+  )(
+      msg: Message
+  ): ZStream[R, E, A] =
+    ZStream.when(
+      msg.getAuthor.toScala.exists(author =>
+        triggerUsers.contains(author.getTag)
+      )
+    )(stream)
+
+  object Bots {
+    val avrae: Tag = "Avrae#6944"
+  }
