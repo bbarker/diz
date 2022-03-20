@@ -63,18 +63,19 @@ object Diz extends zio.App:
   def mainStream(
       gateway: GatewayDiscordClient
   ): ZStream[Quotes & Random, Throwable, Unit] = for {
-    userMessage <- getUserMessages(gateway)
-    botMessage <- getBotMessages(gateway)
+    message <- getMessageStream(gateway)
+    userMessageOpt = getUserMessage(message)
+    botMessageOpt = getBotMessage(message)
     _ <- ZStream.mergeAllUnbounded()(
-      mainUserMessageStream(userMessage),
-      mainBotMessageStream(botMessage)
+      mainUserMessageStream(userMessageOpt),
+      mainBotMessageStream(botMessageOpt)
     )
   } yield ()
 
   def mainUserMessageStream(
-      userMessage: Message
+      userMessageOpt: Option[Message]
   ): ZStream[Quotes & Random, Throwable, Unit] =
-    UStream(userMessage).flatMap(msg =>
+    fromOption(userMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
         randomlySayQuote(msg, maxQuoteRoll = 25),
         pingPong(msg).map(_ => ())
@@ -83,9 +84,9 @@ object Diz extends zio.App:
     )
 
   def mainBotMessageStream(
-      botMessage: Message
+      botMessageOpt: Option[Message]
   ): ZStream[Quotes & Random, Throwable, Unit] =
-    UStream(botMessage).flatMap(msg =>
+    fromOption(botMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
         onUserMessage(Set(Bots.avrae))(snarkOnRoll(msg))(msg)
       )
@@ -97,7 +98,11 @@ object Diz extends zio.App:
     case msg if msg.getContent.equalsIgnoreCase("!ping") =>
       userMessage.getChannel
         .toStream()
-        .flatMap(channel => channel.createMessage("Pong!").toStream())
+        .flatMap(channel =>
+          channel
+            .createMessage("Pong!")
+            .toStream()
+        )
     case _ => ZStream.empty
 
   /** Will only say a quote when the the max quote roll is rolled
@@ -119,7 +124,7 @@ object Diz extends zio.App:
       case _ => ZStream.empty
   } yield ()
 
-  def getUserMessages(
+  def getMessageStream(
       gateway: GatewayDiscordClient
   ): Stream[Throwable, Message] =
     (gateway
@@ -127,21 +132,16 @@ object Diz extends zio.App:
       .on(classOf[MessageCreateEvent]): Publisher[MessageCreateEvent])
       .toStream()
       .map(_.getMessage)
-      .filter(message =>
-        message.getAuthor().map(user => !user.isBot()).orElse(false)
-      )
 
-  def getBotMessages(
-      gateway: GatewayDiscordClient
-  ): Stream[Throwable, Message] =
-    (gateway
-      .getEventDispatcher()
-      .on(classOf[MessageCreateEvent]): Publisher[MessageCreateEvent])
-      .toStream()
-      .map(_.getMessage)
-      .filter(message =>
-        message.getAuthor().map(user => user.isBot()).orElse(false)
-      )
+  def getUserMessage(message: Message): Option[Message] =
+    message.getAuthor().map(user => !user.isBot()).orElse(false) match
+      case true  => Some(message)
+      case false => None
+
+  def getBotMessage(message: Message): Option[Message] =
+    message.getAuthor().map(user => user.isBot()).orElse(false) match
+      case true  => Some(message)
+      case false => None
 
   def onUserMessage[R, E, A](triggerUsers: Set[DiscordTag])(
       stream: => ZStream[R, E, A]
@@ -153,3 +153,8 @@ object Diz extends zio.App:
         triggerUsers.contains(author.getTag)
       )
     )(stream)
+
+  // TODO: see if this can be added as an operator in ZIO
+  def fromOption[A](opt: Option[A]): UStream[A] = opt match
+    case Some(a) => UStream(a)
+    case None    => UStream.empty
