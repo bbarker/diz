@@ -78,6 +78,7 @@ object Diz extends zio.App:
     fromOption(userMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
         randomlySayQuote(msg, maxQuoteRoll = 25),
+        correctTypoStream(msg),
         pingPong(msg).map(_ => ())
         // Keep pingPong last to make sure streams are being evaluated correctly
       )
@@ -123,6 +124,36 @@ object Diz extends zio.App:
           case None => ZStream.empty
       case _ => ZStream.empty
   } yield ()
+
+  val typosToCorrect: Map[String, String] = Map(
+    "Ashoka" -> "Ahsoka",
+    "Bullywog" -> "Bullywug"
+  )
+  //
+  def correctTypo(msg: String)(typo: String): Boolean =
+    msg.toLowerCase.contains(
+      typo.toLowerCase
+    ) && !msg.toLowerCase.contains(typosToCorrect(typo).toLowerCase)
+  //
+  def correctTypoStream(
+      userMessage: Message
+  ): ZStream[Any, Throwable, Unit] =
+    val userNameOpt =
+      userMessage.getAuthor.map(_.getUserData.id.asString).toScala
+    val msgContent = userMessage.getContent
+    val typoOpt =
+      typosToCorrect.keySet.find(correctTypo(msgContent))
+
+    typoOpt match
+      case Some(typo) =>
+        val mention = userNameOpt.fold("")(u => s", <@$u>")
+        val correction = typosToCorrect(typo)
+        val response = s"I think you mean $correction$mention"
+        userMessage.getChannel
+          .flatMap(_.createMessage(response))
+          .toStream()
+          .map(_ => ())
+      case _ => ZStream.empty
 
   def getMessageStream(
       gateway: GatewayDiscordClient
