@@ -16,6 +16,7 @@ import io.github.bbarker.diz.Types.*
 import io.github.bbarker.diz.data.*
 import io.github.bbarker.diz.rpgs.RollReaction.snarkOnRoll
 import io.github.bbarker.diz.users.Bots
+import io.github.bbarker.diz.users.UserOps.*
 import org.reactivestreams.Publisher
 import reactor.core.publisher.{Flux, Mono}
 import zio.Console.*
@@ -138,17 +139,15 @@ object Diz extends zio.App:
   def correctTypoStream(
       userMessage: Message
   ): ZStream[Any, Throwable, Unit] =
-    val userNameOpt =
-      userMessage.getAuthor.map(_.getUserData.id.asString).toScala
     val msgContent = userMessage.getContent
     val typoOpt =
       typosToCorrect.keySet.find(correctTypo(msgContent))
 
     typoOpt match
       case Some(typo) =>
-        val mention = userNameOpt.fold("")(u => s", <@$u>")
         val correction = typosToCorrect(typo)
-        val response = s"I think you mean $correction$mention"
+        val response =
+          s"I think you mean $correction${userMessage.mentionAuthorPost}"
         userMessage.getChannel
           .flatMap(_.createMessage(response))
           .toStream()
