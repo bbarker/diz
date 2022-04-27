@@ -1,7 +1,7 @@
 import sbt.*
 
 object Version {
-  val scala = "3.1.1"
+  val scala = "3.1.2"
   val zio = "2.0.0-RC2"
 }
 
@@ -19,7 +19,7 @@ object Dep {
 
   // For some reason this isn't picked up by the dependency resolver
   // https://stackoverflow.com/questions/69166256/bad-symbolic-reference-with-discord4j
-  val immutables = "org.immutables" % "value" % "2.8.8"
+  val immutables = "org.immutables" % "value" % "2.9.0"
 
   val commonDeps: Seq[ModuleID] = Seq(zio, zioPrelude)
 
