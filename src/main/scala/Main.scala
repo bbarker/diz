@@ -30,17 +30,6 @@ object EnvVars:
 
 object Diz extends ZIOAppDefault:
 
-  val run =
-    mainLogic
-      .retryWhileZIO {
-        case ex: ClientException => warnError(ex) *> ZIO.succeed(true)
-        case ex: CloseException  => warnError(ex) *> ZIO.succeed(true)
-        case _                   => ZIO.succeed(false)
-      }
-      .catchAll(err => printLine(s"Error: $err"))
-      .catchAllDefect(err => printLine(s"Defect: $err"))
-      .provideLayer(Console.live)
-
   def warnError(err: => Any)(implicit
       trace: Trace
   ): URIO[Console, Unit] =
@@ -189,3 +178,15 @@ object Diz extends ZIOAppDefault:
     opt match
       case Some(a) => ZStream.succeed(a)
       case None    => ZStream.empty
+
+  // We keep run at the bottom of the file to avoid needing to make it lazy
+  val run =
+    mainLogic
+      .retryWhileZIO {
+        case ex: ClientException => warnError(ex) *> ZIO.succeed(true)
+        case ex: CloseException  => warnError(ex) *> ZIO.succeed(true)
+        case _                   => ZIO.succeed(false)
+      }
+      .catchAll(err => printLine(s"Error: $err"))
+      .catchAllDefect(err => printLine(s"Defect: $err"))
+      .provideLayer(Console.live)
