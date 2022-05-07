@@ -2,16 +2,16 @@ import sbt.*
 
 object Version {
   val scala = "3.1.2"
-  val zio = "2.0.0-RC5"
+  val zio = "2.0.0-RC6"
 }
 
 object Dep {
   val zio = "dev.zio" %% "zio" % Version.zio
-  val zioPrelude = "dev.zio" %% "zio-prelude" % "1.0.0-RC13"
+  val zioPrelude = "dev.zio" %% "zio-prelude" % "1.0.0-RC14"
   val zioTest = "dev.zio" %% "zio-test" % Version.zio
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % Version.zio
   val zioInteropReactiveStreams =
-    "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0-RC6"
+    "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0-RC7"
 //val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
 
   val discord4j = "com.discord4j" % "discord4j-core" % "3.2.2"

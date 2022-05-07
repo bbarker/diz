@@ -42,7 +42,7 @@ object Diz extends ZIOAppDefault:
       .provideLayer(Console.live)
 
   def warnError(err: => Any)(implicit
-      trace: ZTraceElement
+      trace: Trace
   ): URIO[Console, Unit] =
     printLine(s"Restarting due to Error: $err").orDie
 
@@ -99,11 +99,11 @@ object Diz extends ZIOAppDefault:
   ): Stream[Throwable, Message] = userMessage match
     case msg if msg.getContent.equalsIgnoreCase("!ping") =>
       userMessage.getChannel
-        .toStream()
+        .toZIOStream()
         .flatMap(channel =>
           channel
             .createMessage("Pong!")
-            .toStream()
+            .toZIOStream()
         )
     case _ => ZStream.empty
 
@@ -121,7 +121,7 @@ object Diz extends ZIOAppDefault:
           quotes.sayQuote(quotes.findBestQuote(userMessage.getContent()))
         bestQuote match
           case Some(quote) =>
-            userMessage.getChannel.flatMap(_.createMessage(quote)).toStream()
+            userMessage.getChannel.flatMap(_.createMessage(quote)).toZIOStream()
           case None => ZStream.empty
       case _ => ZStream.empty
   } yield ()
@@ -150,7 +150,7 @@ object Diz extends ZIOAppDefault:
           s"I think you mean $correction${userMessage.mentionAuthorPost}"
         userMessage.getChannel
           .flatMap(_.createMessage(response))
-          .toStream()
+          .toZIOStream()
           .map(_ => ())
       case _ => ZStream.empty
 
@@ -160,7 +160,7 @@ object Diz extends ZIOAppDefault:
     (gateway
       .getEventDispatcher()
       .on(classOf[MessageCreateEvent]): Publisher[MessageCreateEvent])
-      .toStream()
+      .toZIOStream()
       .map(_.getMessage)
 
   def getUserMessage(message: Message): Option[Message] =
@@ -185,6 +185,7 @@ object Diz extends ZIOAppDefault:
     )(stream)
 
   // TODO: see if this can be added as an operator in ZIO
-  def fromOption[A](opt: Option[A]): UStream[A] = opt match
-    case Some(a) => UStream(a)
-    case None    => UStream.empty
+  def fromOption[A](opt: Option[A]): UStream[A] =
+    opt match
+      case Some(a) => ZStream.succeed(a)
+      case None    => ZStream.empty
