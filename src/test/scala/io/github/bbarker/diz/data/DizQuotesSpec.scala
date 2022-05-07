@@ -4,10 +4,10 @@ import zio.*
 import zio.test.Assertion.*
 import zio.test.*
 
-object DizQuotesSpec extends DefaultRunnableSpec:
+object DizQuotesSpec extends zio.test.ZIOSpecDefault:
 
   val theGlovesQuote: String = "The gloves must come off then."
-  override def spec: ZSpec[Environment, TestSuccess] =
+  override def spec: Spec[Environment, TestSuccess] =
     suite("DizQuotesSpec")(
       test("Reads data from resource file") {
         for {

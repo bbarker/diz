@@ -4,7 +4,7 @@ import zio.*
 import zio.test.Assertion.*
 import zio.test.*
 
-object QuotesSpec extends DefaultRunnableSpec:
+object QuotesSpec extends ZIOSpecDefault:
 
   val testGlovesMessage: String = "Give me the gloves then."
   val theGlovesQuote: String = "The gloves must come off then."
@@ -13,7 +13,7 @@ object QuotesSpec extends DefaultRunnableSpec:
     val name = Some("TestQuotes")
     val quotes = Array(theGlovesQuote, "foo", "bar baz", "gloves")
 
-  override def spec: ZSpec[Environment, TestSuccess] =
+  override def spec: Spec[Environment, TestSuccess] =
     suite("QuotesSpec")(
       test("Detects overlap") {
         assert(testQuotes.quotes.toIterable)(contains(theGlovesQuote))

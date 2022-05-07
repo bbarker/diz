@@ -38,13 +38,15 @@ object RollReaction:
 
   def snarkOnRoll(msg: Message): ZStream[Random, Throwable, Unit] =
     for {
-      snarkOpt <- UStream(makeSnark(parseMessage(msg.getContent)))
+      snarkOpt <- ZStream.succeed(makeSnark(parseMessage(msg.getContent)))
       _ <- snarkOpt match {
         case Some(snark) =>
           msg.getChannel
-            .toStream()
+            .toZIOStream()
             .flatMap(channel =>
-              channel.createMessage(msg.mentionMentionsPre ++ snark).toStream()
+              channel
+                .createMessage(msg.mentionMentionsPre ++ snark)
+                .toZIOStream()
             )
         case None => ZStream.empty
       }
