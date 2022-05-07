@@ -28,36 +28,36 @@ import zio.stream.*
 object EnvVars:
   val discordToken = "DISCORD_TOKEN"
 
-object Diz extends zio.App:
+object Diz extends ZIOAppDefault:
 
-  def run(args: List[String]) =
+  val run =
     mainLogic
-      .retryWhileM {
-        case ex: ClientException => warnError(ex) *> UIO(true)
-        case ex: CloseException  => warnError(ex) *> UIO(true)
-        case _                   => UIO(false)
+      .retryWhileZIO {
+        case ex: ClientException => warnError(ex) *> ZIO.succeed(true)
+        case ex: CloseException  => warnError(ex) *> ZIO.succeed(true)
+        case _                   => ZIO.succeed(false)
       }
-      .catchAll(err => putStrLn(s"Error: $err"))
-      .catchAllDefect(err => putStrLn(s"Defect: $err"))
-      .exitCode
+      .catchAll(err => printLine(s"Error: $err"))
+      .catchAllDefect(err => printLine(s"Defect: $err"))
+      .provideLayer(Console.live)
 
   def warnError(err: => Any)(implicit
       trace: ZTraceElement
   ): URIO[Console, Unit] =
-    putStrLn(s"Restarting due to Error: $err").orDie
+    printLine(s"Restarting due to Error: $err").orDie
 
   val mainLogic: ZIO[Console, Throwable, Unit] =
     (for {
-      _ <- putStrLn("Starting DiZ bot")
+      _ <- printLine("Starting DiZ bot")
       discordToken <- ZIO
         .fromOption(sys.env.get(EnvVars.discordToken))
         .mapError(err =>
           new RuntimeException(s"${EnvVars.discordToken} not set")
         )
-      client <- UIO(DiscordClientBuilder.create(discordToken).build())
-      gateway <- ZIO.effect(client.login.block())
+      client <- ZIO.succeed(DiscordClientBuilder.create(discordToken).build())
+      gateway <- ZIO.attempt(client.login.block())
       _ <- mainStream(gateway).runDrain
-      _ <- ZIO.effect(gateway.onDisconnect().block())
+      _ <- ZIO.attempt(gateway.onDisconnect().block())
 
     } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
 
@@ -78,7 +78,7 @@ object Diz extends zio.App:
   ): ZStream[Quotes & Random, Throwable, Unit] =
     fromOption(userMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
-        randomlySayQuote(msg, maxQuoteRoll = 25),
+        randomlySayQuote(msg, maxQuoteRoll = 40),
         correctTypoStream(msg),
         pingPong(msg).map(_ => ())
         // Keep pingPong last to make sure streams are being evaluated correctly
@@ -114,7 +114,7 @@ object Diz extends zio.App:
       maxQuoteRoll: Int
   ): ZStream[Quotes & Random, Throwable, Unit] = for {
     quotes <- ZStream.service[Quotes]
-    roll <- ZStream.fromEffect(Random.nextIntBetween(1, maxQuoteRoll + 1))
+    roll <- ZStream.fromZIO(Random.nextIntBetween(1, maxQuoteRoll + 1))
     _ <- roll match
       case r if r == maxQuoteRoll =>
         val bestQuote =

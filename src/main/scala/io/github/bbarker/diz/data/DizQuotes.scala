@@ -10,13 +10,13 @@ case class DizQuotes(quotes: Array[String]) extends Quotes:
 object DizQuotes:
   val quotePattern: Regex = "\"''(.*)''\"".r
 
-  val layer: ULayer[DizQuotes] = ZLayer.fromEffect(for {
+  val layer: ULayer[DizQuotes] = ZLayer.fromZIO(for {
     quoteFile <- ZIO
-      .effect(
+      .attempt(
         scala.io.Source.fromResource("data/dizquotes.txt")(scala.io.Codec.UTF8)
       )
       .orDie
-    lines <- UIO(quoteFile.getLines.toArray)
+    lines <- ZIO.attempt(quoteFile.getLines.toArray).orDie
     quotes = lines
       .flatMap(line =>
         quotePattern.findAllMatchIn(line).map(_.group(1)).toArray

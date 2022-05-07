@@ -4,7 +4,7 @@ import zio.*
 import zio.test.Assertion.*
 import zio.test.*
 
-object QuotesSpec extends DefaultRunnableSpec:
+object QuotesSpec extends ZIOSpecDefault:
 
   val testGlovesMessage: String = "Give me the gloves then."
   val theGlovesQuote: String = "The gloves must come off then."
