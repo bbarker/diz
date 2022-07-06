@@ -2,7 +2,7 @@ import sbt.*
 
 object Version {
   val scala = "3.1.2"
-  val zio = "2.0.0"
+  val zio = "2.0.0-RC6"
 }
 
 object Dep {
