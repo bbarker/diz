@@ -14,7 +14,7 @@ object Dep {
     "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0-RC7"
 //val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
 
-  val discord4j = "com.discord4j" % "discord4j-core" % "3.2.2"
+  val discord4j = "com.discord4j" % "discord4j-core" % "3.2.3"
   val reactiveStreams = "org.reactivestreams" % "reactive-streams" % "1.0.4"
 
   // For some reason this isn't picked up by the dependency resolver
