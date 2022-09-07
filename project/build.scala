@@ -1,7 +1,7 @@
 import sbt.*
 
 object Version {
-  val scala = "3.1.3"
+  val scala = "3.2.0"
   val zio = "2.0.0-RC6"
 }
 
