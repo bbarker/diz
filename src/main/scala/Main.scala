@@ -32,10 +32,10 @@ object Diz extends ZIOAppDefault:
 
   def warnError(err: => Any)(implicit
       trace: Trace
-  ): URIO[Console, Unit] =
+  ): UIO[Unit] =
     printLine(s"Restarting due to Error: $err").orDie
 
-  val mainLogic: ZIO[Console, Throwable, Unit] =
+  val mainLogic: IO[Throwable, Unit] =
     (for {
       _ <- printLine("Starting DiZ bot")
       discordToken <- ZIO
@@ -48,11 +48,11 @@ object Diz extends ZIOAppDefault:
       _ <- mainStream(gateway).runDrain
       _ <- ZIO.attempt(gateway.onDisconnect().block())
 
-    } yield ()).provideSomeLayer(DizQuotes.layer ++ Random.live)
+    } yield ()).provideSomeLayer(DizQuotes.layer)
 
   def mainStream(
       gateway: GatewayDiscordClient
-  ): ZStream[Quotes & Random, Throwable, Unit] = for {
+  ): ZStream[Quotes, Throwable, Unit] = for {
     message <- getMessageStream(gateway)
     userMessageOpt = getUserMessage(message)
     botMessageOpt = getBotMessage(message)
@@ -64,7 +64,7 @@ object Diz extends ZIOAppDefault:
 
   def mainUserMessageStream(
       userMessageOpt: Option[Message]
-  ): ZStream[Quotes & Random, Throwable, Unit] =
+  ): ZStream[Quotes, Throwable, Unit] =
     fromOption(userMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
         randomlySayQuote(msg, maxQuoteRoll = 40),
@@ -76,7 +76,7 @@ object Diz extends ZIOAppDefault:
 
   def mainBotMessageStream(
       botMessageOpt: Option[Message]
-  ): ZStream[Quotes & Random, Throwable, Unit] =
+  ): ZStream[Quotes, Throwable, Unit] =
     fromOption(botMessageOpt).flatMap(msg =>
       ZStream.mergeAllUnbounded()(
         onUserMessage(Set(Bots.avrae))(snarkOnRoll(msg))(msg)
@@ -101,7 +101,7 @@ object Diz extends ZIOAppDefault:
   def randomlySayQuote(
       userMessage: Message,
       maxQuoteRoll: Int
-  ): ZStream[Quotes & Random, Throwable, Unit] = for {
+  ): ZStream[Quotes, Throwable, Unit] = for {
     quotes <- ZStream.service[Quotes]
     roll <- ZStream.fromZIO(Random.nextIntBetween(1, maxQuoteRoll + 1))
     _ <- roll match
@@ -189,4 +189,3 @@ object Diz extends ZIOAppDefault:
       }
       .catchAll(err => printLine(s"Error: $err"))
       .catchAllDefect(err => printLine(s"Defect: $err"))
-      .provideLayer(Console.live)

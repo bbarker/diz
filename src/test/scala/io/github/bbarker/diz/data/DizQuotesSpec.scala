@@ -14,4 +14,4 @@ object DizQuotesSpec extends zio.test.ZIOSpecDefault:
           dizQuotes <- ZIO.service[DizQuotes]
         } yield assert(dizQuotes.quotes.toIterable)(contains(theGlovesQuote))
       }
-    ).provideSomeLayer[Environment](DizQuotes.layer)
+    ).provide(DizQuotes.layer)

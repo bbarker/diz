@@ -36,7 +36,7 @@ object RollReaction:
     case CritSuccessX2(_) => Some("your divine presence may turn the tide")
     case NothingSpecial   => None
 
-  def snarkOnRoll(msg: Message): ZStream[Random, Throwable, Unit] =
+  def snarkOnRoll(msg: Message): ZStream[Any, Throwable, Unit] =
     for {
       snarkOpt <- ZStream.succeed(makeSnark(parseMessage(msg.getContent)))
       _ <- snarkOpt match {
