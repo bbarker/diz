@@ -19,7 +19,7 @@ object Dep {
 
   // For some reason this isn't picked up by the dependency resolver
   // https://stackoverflow.com/questions/69166256/bad-symbolic-reference-with-discord4j
-  val immutables = "org.immutables" % "value" % "2.9.2"
+  val immutables = "org.immutables" % "value" % "2.9.3"
 
   val commonDeps: Seq[ModuleID] = Seq(zio, zioPrelude)
 
