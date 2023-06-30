@@ -8,10 +8,9 @@ import discord4j.core.`object`.entity.{Message, User}
 
 object UserOps:
 
-  extension (user: User)
-    def mention: String = s"<@${user.getUserData.id}>"
-    def mentionPre: String = s"${user.mention}, "
-    def mentionPost: String = s", ${user.mention}"
+  extension (user: User) def mention: String = s"<@${user.getUserData.id}>"
+  def mentionPre: String = s"${user.mention}, "
+  def mentionPost: String = s", ${user.mention}"
   //
   extension (userOpt: Option[User])
     def mention: String = userOpt.fold("")(_.mention)
