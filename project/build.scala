@@ -11,7 +11,7 @@ object Dep {
   val zioTest = "dev.zio" %% "zio-test" % Version.zio
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % Version.zio
   val zioInteropReactiveStreams =
-    "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0"
+    "dev.zio" %% "zio-interop-reactivestreams" % "2.0.2"
 //val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
 
   val discord4j = "com.discord4j" % "discord4j-core" % "3.2.6"
