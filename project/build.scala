@@ -1,7 +1,7 @@
 import sbt.*
 
 object Version {
-  val scala = "3.2.1"
+  val scala = "3.2.2"
   val zio = "2.0.5"
 }
 
@@ -14,12 +14,12 @@ object Dep {
     "dev.zio" %% "zio-interop-reactivestreams" % "2.0.0"
 //val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
 
-  val discord4j = "com.discord4j" % "discord4j-core" % "3.2.3"
+  val discord4j = "com.discord4j" % "discord4j-core" % "3.2.6"
   val reactiveStreams = "org.reactivestreams" % "reactive-streams" % "1.0.4"
 
   // For some reason this isn't picked up by the dependency resolver
   // https://stackoverflow.com/questions/69166256/bad-symbolic-reference-with-discord4j
-  val immutables = "org.immutables" % "value" % "2.9.2"
+  val immutables = "org.immutables" % "value" % "2.9.3"
 
   val commonDeps: Seq[ModuleID] = Seq(zio, zioPrelude)
 
