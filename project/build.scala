@@ -7,7 +7,7 @@ object Version {
 
 object Dep {
   val zio = "dev.zio" %% "zio" % Version.zio
-  val zioPrelude = "dev.zio" %% "zio-prelude" % "1.0.0-RC16"
+  val zioPrelude = "dev.zio" %% "zio-prelude" % "1.0.0-RC34"
   val zioTest = "dev.zio" %% "zio-test" % Version.zio
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % Version.zio
   val zioInteropReactiveStreams =
